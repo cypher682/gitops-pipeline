@@ -1,0 +1,67 @@
+# ArgoCD ConfigManagementPlugin that decrypts SOPS files at sync time.
+# Applied as a sidecar to the argocd-repo-server Deployment (patch shown
+# below the plugin definition).
+#
+# Reference: https://argo-cd.readthedocs.io/en/stable/operator-manual/config-management-plugins/
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sops-cmp-plugin
+  namespace: argocd
+data:
+  plugin.yaml: |
+    apiVersion: argoproj.io/v1alpha1
+    kind: ConfigManagementPlugin
+    metadata:
+      name: sops-helm
+    spec:
+      version: v1.0
+      init:
+        command: ["/bin/sh", "-c"]
+        args: ["helm dependency build || true"]
+      generate:
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            # Render Helm templates, then decrypt any SOPS-encrypted
+            # manifests found under secrets/ and append them to the
+            # output stream ArgoCD applies.
+            helm template . --values "${HELM_VALUES_FILE:-values.yaml}"
+            if [ -d "../secrets" ]; then
+              for f in ../secrets/*.enc.yaml; do
+                [ -f "$f" ] || continue
+                echo "---"
+                sops --decrypt "$f"
+              done
+            fi
+---
+# Patch snippet to add the SOPS-enabled sidecar to argocd-repo-server.
+# Apply with: kubectl patch deployment argocd-repo-server -n argocd --patch-file argocd/sops-plugin.yaml
+# (kept as a separate documented step rather than auto-applied, since it
+# mutates a core ArgoCD component — review before applying)
+#
+# spec:
+#   template:
+#     spec:
+#       containers:
+#         - name: sops-helm
+#           image: alpine/helm:3.15.4
+#           command: [argocd-cmp-server]
+#           env:
+#             - name: SOPS_AGE_KEY
+#               valueFrom:
+#                 secretKeyRef:
+#                   name: sops-age-key
+#                   key: age-key.txt
+#           volumeMounts:
+#             - mountPath: /var/run/argocd
+#               name: var-files
+#             - mountPath: /home/argocd/cmp-server/plugins
+#               name: plugins
+#             - mountPath: /home/argocd/cmp-server/config/plugin.yaml
+#               subPath: plugin.yaml
+#               name: sops-cmp-plugin
+#       volumes:
+#         - configMap:
+#             name: sops-cmp-plugin
+#           name: sops-cmp-plugin

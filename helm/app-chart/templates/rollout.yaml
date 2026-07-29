@@ -1,0 +1,68 @@
+{{- if .Values.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+{{- else }}
+apiVersion: apps/v1
+kind: Deployment
+{{- end }}
+metadata:
+  name: {{ include "app-chart.fullname" . }}
+  labels:
+    {{- include "app-chart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "app-chart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "app-chart.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "app-chart.serviceAccountName" . }}
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.targetPort }}
+          envFrom:
+            # Populated by the Secret that ArgoCD's sops-helm plugin decrypts
+            # from secrets/app-secrets.enc.yaml at sync time. optional:true so
+            # the chart still deploys cleanly before the plugin is wired up.
+            - secretRef:
+                name: app-secrets
+                optional: true
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+{{- if .Values.rollout.enabled }}
+  strategy:
+    canary:
+      steps:
+        {{- range .Values.rollout.canarySteps }}
+        {{- if .setWeight }}
+        - setWeight: {{ .setWeight }}
+        {{- end }}
+        {{- if .pauseSeconds }}
+        - pause: { duration: {{ .pauseSeconds }}s }
+        {{- end }}
+        {{- if .analysis }}
+        - analysis:
+            templates:
+              - templateName: error-rate-check
+        {{- end }}
+        {{- end }}
+{{- end }}

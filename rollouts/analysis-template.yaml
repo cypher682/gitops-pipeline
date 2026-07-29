@@ -1,0 +1,33 @@
+# AnalysisTemplate referenced by helm/app-chart/templates/rollout.yaml's
+# canary steps (see values-staging.yaml canarySteps -> analysis: true).
+#
+# REQUIRES: D1 observability-platform's Prometheus reachable from this
+# cluster at the address below. If D1's Prometheus runs in a separate
+# Docker Compose stack (not this minikube cluster), either:
+#   (a) point `address` at its exposed host:port, or
+#   (b) deploy a Prometheus instance into the `observability` namespace
+#       on this cluster and have it scrape the app's /metrics endpoint
+#       (NetworkPolicy already allows ingress from an `observability`
+#       namespace — see helm/app-chart/templates/networkpolicy.yaml).
+# Confirm which applies to your D1 setup before running a real canary.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-rate-check
+  namespace: gitops-staging
+spec:
+  args:
+    - name: service-name
+      value: app-chart-staging
+  metrics:
+    - name: error-rate
+      # Checked at every `analysis` step in the canary (see rollout.yaml).
+      interval: 30s
+      count: 4
+      successCondition: result[0] <= 0.05
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus.observability.svc.cluster.local:9090
+          query: |
+            app_error_rate{job="{{args.service-name}}"}

@@ -1,0 +1,18 @@
+environment: staging
+replicaCount: 2
+ingress:
+  host: gitops-app-staging.local
+hpa:
+  minReplicas: 2
+  maxReplicas: 6
+rollout:
+  enabled: true
+  # Full canary with analysis gates — the real demo path
+  canarySteps:
+    - setWeight: 10
+    - pauseSeconds: 120
+    - analysis: true
+    - setWeight: 50
+    - pauseSeconds: 120
+    - analysis: true
+    - setWeight: 100

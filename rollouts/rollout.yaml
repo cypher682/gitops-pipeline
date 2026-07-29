@@ -1,0 +1,64 @@
+# Reference / evidence copy of the staging Rollout as ArgoCD will actually
+# render it (helm/app-chart/templates/rollout.yaml + values-staging.yaml).
+# Not applied directly — kept here so the canary strategy is reviewable
+# without digging through Helm templating, and for the evidence checklist
+# screenshot ("Argo Rollouts canary progression").
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: app-chart-staging
+  namespace: gitops-staging
+  labels:
+    app.kubernetes.io/name: app-chart
+    environment: staging
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: app-chart
+      environment: staging
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: app-chart
+        environment: staging
+    spec:
+      containers:
+        - name: app
+          image: "registry.gitlab.com/CHANGE_ME/gitops-pipeline:latest"
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 3
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 10
+  strategy:
+    canary:
+      steps:
+        - setWeight: 10
+        - pause: { duration: 120s }
+        - analysis:
+            templates:
+              - templateName: error-rate-check
+        - setWeight: 50
+        - pause: { duration: 120s }
+        - analysis:
+            templates:
+              - templateName: error-rate-check
+        - setWeight: 100
+---
+# Documented alternative strategy (not the active demo path — canary is).
+# Swap `strategy:` above with this block to demonstrate blue-green instead.
+#
+# strategy:
+#   blueGreen:
+#     activeService: app-chart-staging-active
+#     previewService: app-chart-staging-preview
+#     autoPromotionEnabled: false
+#     prePromotionAnalysis:
+#       templates:
+#         - templateName: error-rate-check
+#     scaleDownDelaySeconds: 60

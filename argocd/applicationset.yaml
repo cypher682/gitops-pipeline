@@ -1,0 +1,69 @@
+# ApplicationSet generates one ArgoCD Application per environment from a
+# single template, driven by the `list` generator below.
+#
+# Apply with: kubectl apply -f argocd/applicationset.yaml -n argocd
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: gitops-pipeline-app
+  namespace: argocd
+spec:
+  # goTemplate enables the {{- if }} conditional below so dev and staging
+  # can have genuinely different sync policies from one template.
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - list:
+        elements:
+          - env: dev
+            namespace: gitops-dev
+            valuesFile: values-dev.yaml
+            autoSync: true
+          - env: staging
+            namespace: gitops-staging
+            valuesFile: values-staging.yaml
+            # Manual sync — only triggered after the CI `promote` stage
+            # approval gate and signature verification pass.
+            autoSync: false
+  template:
+    metadata:
+      name: "gitops-pipeline-{{.env}}"
+      labels:
+        environment: "{{.env}}"
+    spec:
+      project: default
+      source:
+        # Replace with your actual GitLab (or GitHub mirror) repo URL.
+        repoURL: https://gitlab.com/CHANGE_ME/gitops-pipeline.git
+        targetRevision: main
+        path: helm/app-chart
+        helm:
+          valueFiles:
+            - "{{.valuesFile}}"
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{.namespace}}"
+      syncPolicy:
+        {{- if .autoSync }}
+        automated:
+          prune: true
+          selfHeal: true
+        {{- end }}
+        syncOptions:
+          - CreateNamespace=true
+---
+# Namespaces created up front so NetworkPolicy namespaceSelectors
+# (ingress-nginx, observability) resolve correctly even before first sync.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops-dev
+  labels:
+    kubernetes.io/metadata.name: gitops-dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops-staging
+  labels:
+    kubernetes.io/metadata.name: gitops-staging

@@ -1,0 +1,62 @@
+# Default values for app-chart.
+# Overridden per-environment in argocd/applicationset.yaml via valueFiles / helm.parameters.
+
+image:
+  repository: registry.gitlab.com/CHANGE_ME/gitops-pipeline
+  # Updated automatically by the push:update-gitops-values CI job (Stage 7)
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: gitops-app.local
+  path: /
+  pathType: Prefix
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 128Mi
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+networkPolicy:
+  enabled: true
+  # Allow ingress only from the nginx ingress controller namespace, and
+  # egress only to DNS + the Postgres/Redis service ports it needs.
+  ingressControllerNamespace: ingress-nginx
+
+rollout:
+  # Argo Rollouts CRD replaces Deployment when true.
+  # Set true from Stage 4 onward; kept configurable so the chart also
+  # works standalone (plain Deployment) if ever demoed without Rollouts.
+  enabled: true
+  canarySteps:
+    - setWeight: 10
+    - pauseSeconds: 120
+    - analysis: true
+    - setWeight: 50
+    - pauseSeconds: 120
+    - analysis: true
+    - setWeight: 100
+
+serviceAccount:
+  create: true
+  name: ""
+
+environment: dev

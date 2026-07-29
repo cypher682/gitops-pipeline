@@ -1,0 +1,32 @@
+rules:
+  - id: hardcoded-secret-like-string
+    languages: [python]
+    severity: ERROR
+    message: >-
+      Possible hardcoded credential. Use environment variables or a secrets
+      manager (this repo uses SOPS+age — see secrets/ and docs).
+    patterns:
+      - pattern-either:
+          - pattern: $VAR = "..."
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(password|secret|token|api_key|apikey)
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: ^(?!.*CHANGE_ME).*$
+
+  - id: fastapi-missing-response-model
+    languages: [python]
+    severity: INFO
+    message: >-
+      Route handler has no explicit response_model / return type — fine for
+      this sample app, but flag for awareness in larger FastAPI services.
+    patterns:
+      - pattern: |
+          @app.$METHOD(...)
+          def $FUNC(...):
+              ...
+      - pattern-not: |
+          @app.$METHOD(..., response_model=..., ...)
+          def $FUNC(...):
+              ...

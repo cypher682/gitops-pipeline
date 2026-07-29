@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+sbom.cyclonedx.json
+trivy-report.json
+semgrep-report.json
+age-key.txt
+*.enc.yaml.bak

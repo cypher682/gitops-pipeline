@@ -1,0 +1,28 @@
+# Root Application implementing the app-of-apps pattern.
+# This is the single object you apply manually; it then owns and syncs
+# the ApplicationSet (argocd/applicationset.yaml), which in turn owns
+# the dev and staging Applications.
+#
+# Apply once: kubectl apply -f argocd/app-of-apps.yaml -n argocd
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gitops-pipeline-root
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://gitlab.com/CHANGE_ME/gitops-pipeline.git
+    targetRevision: main
+    path: argocd
+    directory:
+      include: "applicationset.yaml"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
