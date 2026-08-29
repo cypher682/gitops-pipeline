@@ -185,6 +185,7 @@ scan:semgrep:
       --config auto
       --config .semgrep.yml
       --error
+      --severity ERROR
       --json --output semgrep-report.json
       app/
   artifacts:
