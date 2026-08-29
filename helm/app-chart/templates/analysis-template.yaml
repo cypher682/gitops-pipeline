@@ -1,0 +1,24 @@
+{{- if and .Values.rollout.enabled .Values.rollout.analysisTemplate }}
+# AnalysisTemplate used by the canary steps in rollout.yaml. Rendered only
+# when rollout.analysisTemplate is true (staging); dev overrides it off.
+# No namespace here on purpose: ArgoCD places it in the app's destination
+# namespace (gitops-staging).
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: error-rate-check
+spec:
+  metrics:
+    - name: error-rate
+      # Checked at every `analysis` step in the canary (see rollout.yaml).
+      interval: 30s
+      count: 4
+      successCondition: result[0] <= 0.05
+      failureLimit: 1
+      provider:
+        prometheus:
+          address: http://prometheus.observability.svc.cluster.local:9090
+          # `job` matches the scrape job label in observability/prometheus.yaml
+          # (app-chart-<environment>).
+          query: app_error_rate{job="{{ include "app-chart.fullname" . }}"}
+{{- end }}

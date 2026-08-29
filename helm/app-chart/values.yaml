@@ -48,6 +48,9 @@ rollout:
   # Set true from Stage 4 onward; kept configurable so the chart also
   # works standalone (plain Deployment) if ever demoed without Rollouts.
   enabled: true
+  # Render the error-rate-check AnalysisTemplate (canary analysis gates).
+  # Enabled here so staging inherits it; values-dev.yaml turns it off.
+  analysisTemplate: true
   canarySteps:
     - setWeight: 10
     - pauseSeconds: 120

@@ -1,5 +1,8 @@
-# AnalysisTemplate referenced by helm/app-chart/templates/rollout.yaml's
-# canary steps (see values-staging.yaml canarySteps -> analysis: true).
+# STANDALONE reference copy of the AnalysisTemplate.
+# The live copy is rendered by the Helm chart:
+#   helm/app-chart/templates/analysis-template.yaml
+# (gated on rollout.analysisTemplate, so it lands in the app's destination
+# namespace without a hard-coded namespace). Kept here as documentation.
 #
 # REQUIRES: D1 observability-platform's Prometheus reachable from this
 # cluster at the address below. If D1's Prometheus runs in a separate

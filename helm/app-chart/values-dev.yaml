@@ -9,5 +9,6 @@ rollout:
   # Dev auto-syncs and doesn't need the full canary ceremony —
   # single-step rollout keeps iteration fast.
   enabled: true
+  analysisTemplate: false
   canarySteps:
     - setWeight: 100
