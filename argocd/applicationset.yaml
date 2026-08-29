@@ -34,7 +34,9 @@ spec:
         # Replace with your actual GitLab (or GitHub mirror) repo URL.
         repoURL: https://gitlab.com/cypher682/gitops-pipeline.git
         targetRevision: main
-        path: helm/app-chart
+        # Path "." = the whole repo is the CMP's working dir. The sops-helm
+        # plugin renders ./helm/app-chart and appends decrypted ./secrets/*.
+        path: "."
         # Managed by the sops-helm ConfigManagementPlugin sidecar (renders the
         # chart then appends SOPS-decrypted manifests). Auto-selected via the
         # plugin's Chart.yaml discovery — no explicit name needed.

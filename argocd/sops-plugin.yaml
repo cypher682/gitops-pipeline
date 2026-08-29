@@ -36,18 +36,21 @@ data:
         args:
           - |
             set -e
-            helm dependency build . || true
+            helm dependency build ./helm/app-chart || true
       generate:
         command: ["/bin/sh", "-c"]
         args:
           - |
             set -o pipefail
+            # The ApplicationSet points the app source at the repo ROOT
+            # (path: "."), so cwd = repo root: the chart lives at
+            # ./helm/app-chart and the SOPS files at ./secrets — both are
+            # inside the tar stream the repo-server sends to this plugin
+            # (sibling ../paths would NOT be included).
             # $ARGOCD_ENV_VALUES_FILE is injected from the Application's
             # plugin.env (values-dev.yaml / values-staging.yaml).
-            helm template . -f "${ARGOCD_ENV_VALUES_FILE:-values.yaml}"
-            # secrets/ is added to the plugin tar stream via the Application's
-            # argocd.argoproj.io/manifest-generate-paths annotation.
-            for f in ../secrets/*.enc.yaml; do
+            helm template ./helm/app-chart -f "./helm/app-chart/${ARGOCD_ENV_VALUES_FILE:-values.yaml}"
+            for f in ./secrets/*.enc.yaml; do
               [ -f "$f" ] || continue
               echo "---"
               sops --decrypt "$f"
