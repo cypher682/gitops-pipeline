@@ -1,0 +1,91 @@
+# Minimal Prometheus for the Argo Rollouts canary analysis.
+#
+# The AnalysisTemplate (rollouts/analysis-template.yaml) queries
+#   prometheus.observability.svc.cluster.local:9090
+#   app_error_rate{job="app-chart-staging"}
+#
+# The chart's NetworkPolicy allows scraping /metrics (port 8000) from the
+# `observability` namespace, and the app's /metrics endpoint emits
+# `app_error_rate` (see app/app/main.py).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: observability
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: observability
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 10s
+    scrape_configs:
+      - job_name: app-chart-dev
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["app-chart-dev.gitops-dev.svc.cluster.local:80"]
+      - job_name: app-chart-staging
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["app-chart-staging.gitops-staging.svc.cluster.local:80"]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: observability
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.53.2
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --web.enable-lifecycle
+            - --storage.tsdb.retention.time=1h
+          ports:
+            - containerPort: 9090
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+            - name: data
+              mountPath: /prometheus
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: observability
+spec:
+  selector:
+    app: prometheus
+  ports:
+    - port: 9090
+      targetPort: 9090

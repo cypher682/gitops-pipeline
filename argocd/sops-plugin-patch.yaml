@@ -20,18 +20,22 @@ spec:
           emptyDir: {}
         - name: cmp-tmp
           emptyDir: {}
+        - name: sops-cmp-plugin
+          configMap:
+            name: sops-cmp-plugin
       containers:
         - name: argocd-repo-server
-          env:
-            # Honors the manifest-generate-paths annotation so the plugin tar
-            # stream includes both the chart and the encryption secrets dir.
-            - name: ARGOCD_REPO_SERVER_PLUGIN_USE_MANIFEST_GENERATE_PATHS
-              value: "true"
+          # NOTE: no env patch here — by default the CMP receives the WHOLE
+          # repository tar (including secrets/), so the plugin's
+          # ../secrets/*.enc.yaml already resolves from cwd helm/app-chart.
           volumeMounts:
             - mountPath: /home/argocd/cmp-server/plugins
               name: plugins
         - name: sops-helm
           image: registry.gitlab.com/cypher682/gitops-pipeline/argocd-cmp-sops:v3.5.2
+          # Image is loaded into the node (minikube image load), not pulled
+          # from the GitLab registry — never re-pull each restart.
+          imagePullPolicy: IfNotPresent
           command: ["/var/run/argocd/argocd-cmp-server"]
           securityContext:
             runAsNonRoot: true

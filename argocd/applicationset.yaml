@@ -18,23 +18,16 @@ spec:
           - env: dev
             namespace: gitops-dev
             valuesFile: values-dev.yaml
-            autoSync: true
           - env: staging
             namespace: gitops-staging
             valuesFile: values-staging.yaml
-            # Manual sync — only triggered after the CI `promote` stage
-            # approval gate and signature verification pass.
-            autoSync: false
+            # Manual sync — triggered only by the CI `promote` stage after the
+            # human approval gate and Cosign signature verification pass.
   template:
     metadata:
       name: "gitops-pipeline-{{.env}}"
       labels:
         environment: "{{.env}}"
-      annotations:
-        # Tells argocd-repo-server (ARGOCD_REPO_SERVER_PLUGIN_USE_MANIFEST_GENERATE_PATHS=true)
-        # to include the secrets/ directory in the tar stream handed to the
-        # sops-helm CMP so ../secrets/*.enc.yaml resolves during generate.
-        argocd.argoproj.io/manifest-generate-paths: "helm/app-chart,secrets"
     spec:
       project: default
       source:
@@ -54,12 +47,12 @@ spec:
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{.namespace}}"
+      # Both environments sync on demand — dev is triggered automatically by
+      # the deploy:dev-sync CI job, staging only by the promote gate
+      # (deploy:staging-sync). Keeps this manifest valid YAML (a go-template
+      # if/end block around a mapping would break the plain-YAML parse the
+      # repo-server does when the root app applies it via app-of-apps).
       syncPolicy:
-        {{- if .autoSync }}
-        automated:
-          prune: true
-          selfHeal: true
-        {{- end }}
         syncOptions:
           - CreateNamespace=true
 ---
