@@ -30,6 +30,11 @@ spec:
       name: "gitops-pipeline-{{.env}}"
       labels:
         environment: "{{.env}}"
+      annotations:
+        # Tells argocd-repo-server (ARGOCD_REPO_SERVER_PLUGIN_USE_MANIFEST_GENERATE_PATHS=true)
+        # to include the secrets/ directory in the tar stream handed to the
+        # sops-helm CMP so ../secrets/*.enc.yaml resolves during generate.
+        argocd.argoproj.io/manifest-generate-paths: "helm/app-chart,secrets"
     spec:
       project: default
       source:
@@ -37,9 +42,15 @@ spec:
         repoURL: https://gitlab.com/cypher682/gitops-pipeline.git
         targetRevision: main
         path: helm/app-chart
-        helm:
-          valueFiles:
-            - "{{.valuesFile}}"
+        # Managed by the sops-helm ConfigManagementPlugin sidecar (renders the
+        # chart then appends SOPS-decrypted manifests). Auto-selected via the
+        # plugin's Chart.yaml discovery — no explicit name needed.
+        plugin:
+          env:
+            # Read by the CMP as $ARGOCD_ENV_VALUES_FILE (ArgoCD prefixes
+            # plugin env vars with ARGOCD_ENV_).
+            - name: VALUES_FILE
+              value: "{{.valuesFile}}"
       destination:
         server: https://kubernetes.default.svc
         namespace: "{{.namespace}}"

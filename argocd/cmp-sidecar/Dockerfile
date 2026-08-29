@@ -1,0 +1,9 @@
+# Sidecar image for the ArgoCD sops-helm ConfigManagementPlugin.
+# Contains the two tools the plugin needs (helm + sops). The
+# argocd-cmp-server entrypoint binary is shared into the sidecar from the
+# repo-server via the /var/run/argocd volume — it is NOT baked in here.
+FROM alpine/helm:3.15.4
+RUN wget -q -O /usr/local/bin/sops \
+      https://github.com/getsops/sops/releases/download/v3.9.4/sops-v3.9.4.linux.amd64 \
+    && chmod +x /usr/local/bin/sops \
+    && sops --version

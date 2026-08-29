@@ -1,8 +1,21 @@
-# ArgoCD ConfigManagementPlugin that decrypts SOPS files at sync time.
-# Applied as a sidecar to the argocd-repo-server Deployment (patch shown
-# below the plugin definition).
+# ArgoCD ConfigManagementPlugin that renders the Helm chart AND decrypts
+# SOPS-encrypted files from secrets/ at sync time. Runs as a sidecar to
+# argocd-repo-server (ArgoCD v3 sidecar CMP architecture).
 #
-# Reference: https://argo-cd.readthedocs.io/en/stable/operator-manual/config-management-plugins/
+# Applied in two steps, then the repo-server wires the sidecar in:
+#   1. kubectl apply -f argocd/sops-plugin.yaml -n argocd
+#   2. kubectl create secret generic sops-age-key -n argocd \
+#        --from-file=age-key.txt=<path-to-your-age-key.txt>
+#   3. kubectl patch deployment argocd-repo-server -n argocd \
+#        --patch-file argocd/sops-plugin-patch.yaml
+#   4. kubectl rollout restart deployment argocd-repo-server -n argocd
+#
+# Notes:
+#   - The sidecar's SOPS_AGE_KEY env var holds the age PRIVATE key from the
+#     sops-age-key secret (ArgoCD mounts it as the value of key `age-key.txt`).
+#   - The plugin is auto-selected by ArgoCD for any Application repo containing
+#     a Chart.yaml (discover), so the Applications use `spec.source.plugin`
+#     with no explicit name (see argocd/applicationset.yaml).
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -15,53 +28,27 @@ data:
     metadata:
       name: sops-helm
     spec:
-      version: v1.0
+      discover:
+        find:
+          command: [sh, -c, "find . -name 'Chart.yaml'"]
       init:
         command: ["/bin/sh", "-c"]
-        args: ["helm dependency build || true"]
+        args:
+          - |
+            set -e
+            helm dependency build . || true
       generate:
         command: ["/bin/sh", "-c"]
         args:
           - |
-            # Render Helm templates, then decrypt any SOPS-encrypted
-            # manifests found under secrets/ and append them to the
-            # output stream ArgoCD applies.
-            helm template . --values "${HELM_VALUES_FILE:-values.yaml}"
-            if [ -d "../secrets" ]; then
-              for f in ../secrets/*.enc.yaml; do
-                [ -f "$f" ] || continue
-                echo "---"
-                sops --decrypt "$f"
-              done
-            fi
----
-# Patch snippet to add the SOPS-enabled sidecar to argocd-repo-server.
-# Apply with: kubectl patch deployment argocd-repo-server -n argocd --patch-file argocd/sops-plugin.yaml
-# (kept as a separate documented step rather than auto-applied, since it
-# mutates a core ArgoCD component — review before applying)
-#
-# spec:
-#   template:
-#     spec:
-#       containers:
-#         - name: sops-helm
-#           image: alpine/helm:3.15.4
-#           command: [argocd-cmp-server]
-#           env:
-#             - name: SOPS_AGE_KEY
-#               valueFrom:
-#                 secretKeyRef:
-#                   name: sops-age-key
-#                   key: age-key.txt
-#           volumeMounts:
-#             - mountPath: /var/run/argocd
-#               name: var-files
-#             - mountPath: /home/argocd/cmp-server/plugins
-#               name: plugins
-#             - mountPath: /home/argocd/cmp-server/config/plugin.yaml
-#               subPath: plugin.yaml
-#               name: sops-cmp-plugin
-#       volumes:
-#         - configMap:
-#             name: sops-cmp-plugin
-#           name: sops-cmp-plugin
+            set -o pipefail
+            # $ARGOCD_ENV_VALUES_FILE is injected from the Application's
+            # plugin.env (values-dev.yaml / values-staging.yaml).
+            helm template . -f "${ARGOCD_ENV_VALUES_FILE:-values.yaml}"
+            # secrets/ is added to the plugin tar stream via the Application's
+            # argocd.argoproj.io/manifest-generate-paths annotation.
+            for f in ../secrets/*.enc.yaml; do
+              [ -f "$f" ] || continue
+              echo "---"
+              sops --decrypt "$f"
+            done

@@ -1,0 +1,54 @@
+# Strategic merge patch that wires the sops-helm CMP sidecar into
+# argocd-repo-server (ArgoCD v3 sidecar CMP architecture).
+#
+# Apply with:
+#   kubectl patch deployment argocd-repo-server -n argocd --patch-file argocd/sops-plugin-patch.yaml
+#   kubectl rollout restart deployment argocd-repo-server -n argocd
+#
+# Per the ArgoCD docs the sidecar must:
+#   - start via the shared /var/run/argocd/argocd-cmp-server binary (repo-server
+#     exports it into the var-files emptyDir volume), NOT an image entrypoint
+#   - run as uid 999 with runAsNonRoot
+#   - mount the shared var-files / plugins / cmp-tmp volumes
+#   - expose its plugin config at /home/argocd/cmp-server/config/plugin.yaml
+# The repo-server also mounts the `plugins` volume so it can discover the CMP.
+spec:
+  template:
+    spec:
+      volumes:
+        - name: plugins
+          emptyDir: {}
+        - name: cmp-tmp
+          emptyDir: {}
+      containers:
+        - name: argocd-repo-server
+          env:
+            # Honors the manifest-generate-paths annotation so the plugin tar
+            # stream includes both the chart and the encryption secrets dir.
+            - name: ARGOCD_REPO_SERVER_PLUGIN_USE_MANIFEST_GENERATE_PATHS
+              value: "true"
+          volumeMounts:
+            - mountPath: /home/argocd/cmp-server/plugins
+              name: plugins
+        - name: sops-helm
+          image: registry.gitlab.com/cypher682/gitops-pipeline/argocd-cmp-sops:v3.5.2
+          command: ["/var/run/argocd/argocd-cmp-server"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 999
+          env:
+            - name: SOPS_AGE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sops-age-key
+                  key: age-key.txt
+          volumeMounts:
+            - mountPath: /var/run/argocd
+              name: var-files
+            - mountPath: /home/argocd/cmp-server/plugins
+              name: plugins
+            - mountPath: /home/argocd/cmp-server/config/plugin.yaml
+              subPath: plugin.yaml
+              name: sops-cmp-plugin
+            - mountPath: /tmp
+              name: cmp-tmp
