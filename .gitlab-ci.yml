@@ -101,7 +101,7 @@ test:unit:
   image: python:3.13-slim
   script:
     - pip install --no-cache-dir --quiet -r app/requirements-dev.txt
-    - cd app && pytest -v --cov=app --cov-report=xml --cov-report=term
+    - cd app && python -m pytest -v --cov=app --cov-report=xml --cov-report=term
   coverage: '/TOTAL.*\s+(\d+%)$/'
   artifacts:
     reports:
