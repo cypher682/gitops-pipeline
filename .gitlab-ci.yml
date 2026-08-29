@@ -304,7 +304,9 @@ push:tag-latest:
 
 push:update-gitops-values:
   stage: push
-  image: alpine/git:2.45.2
+  image:
+    name: alpine/git:2.45.2
+    entrypoint: [""]
   needs: ["push:tag-latest"]
   script:
     - |
