@@ -331,12 +331,13 @@ deploy:dev-sync:
     entrypoint: [""]
   needs: ["push:update-gitops-values"]
   script:
-    - argocd login "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
-    # Dev is auto-sync + self-heal (see argocd/applicationset.yaml), so this
-    # call just forces an immediate sync rather than waiting for ArgoCD's
-    # poll interval — keeps CI feedback fast.
-    - argocd app sync gitops-pipeline-dev --grpc-web
-    - argocd app wait gitops-pipeline-dev --health --timeout 180 --grpc-web
+    # ARGOCD_SERVER must be bare host:port (e.g. "host.ngrok-free.dev:443").
+    # Passing "https://..." makes the CLI double-prefix the scheme and fail.
+    # The server runs in --insecure mode (healthcheck: "tls: false") since
+    # ngrok terminates TLS before reaching the pod — CLI --grpc-web works
+    # over the resulting cleartext hop.
+    - argocd app sync gitops-pipeline-dev --server "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
+    - argocd app wait gitops-pipeline-dev --health --timeout 180 --server "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
 
 deploy:dev-smoke-test:
   stage: deploy-dev
@@ -387,11 +388,10 @@ deploy:staging-sync:
     entrypoint: [""]
   needs: ["promote:verify-signature"]
   script:
-    - argocd login "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
     # Staging has no automated sync policy (manual only) — this is the
     # explicit trigger, gated on human approval + signature re-verification
     # above.
-    - argocd app sync gitops-pipeline-staging --grpc-web
+    - argocd app sync gitops-pipeline-staging --server "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
 
 deploy:staging-canary:
   stage: deploy-staging
@@ -404,5 +404,5 @@ deploy:staging-canary:
     # -> analysis -> 100%, defined in helm/app-chart/templates/rollout.yaml
     # and rollouts/analysis-template.yaml). Auto-rollback on failed analysis
     # is handled by the Rollouts controller itself, not this job.
-    - argocd login "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
-    - argocd app wait gitops-pipeline-staging --health --timeout 600 --grpc-web
+    # is handled by the Rollouts controller itself, not this job.
+    - argocd app wait gitops-pipeline-staging --health --timeout 600 --server "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
