@@ -53,5 +53,11 @@ data:
             for f in ./secrets/*.enc.yaml; do
               [ -f "$f" ] || continue
               echo "---"
-              sops --decrypt "$f"
+              if [ -n "$ARGOCD_APP_NAMESPACE" ]; then
+                # One shared encrypted secret, normalized into each app's
+                # destination namespace (gitops-dev / gitops-staging).
+                sops --decrypt "$f" | sed "s/namespace: gitops-.*/namespace: ${ARGOCD_APP_NAMESPACE}/"
+              else
+                sops --decrypt "$f"
+              fi
             done
