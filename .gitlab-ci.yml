@@ -227,7 +227,9 @@ scan:dependency-audit:
 # ---------------------------------------------------------------------------
 sign:cosign:
   stage: sign
-  image: gcr.io/projectsigstore/cosign:v2.4.1
+  image:
+    name: gcr.io/projectsigstore/cosign:v2.4.1
+    entrypoint: [""]
   needs: ["scan:trivy", "scan:semgrep"]
   variables:
     COSIGN_EXPERIMENTAL: "1"  # enables keyless (Sigstore/Fulcio/Rekor) signing
@@ -240,7 +242,9 @@ sign:cosign:
 
 sign:sbom:
   stage: sign
-  image: anchore/syft:v1.14.1
+  image:
+    name: anchore/syft:v1.14.1
+    entrypoint: [""]
   needs: ["build:image"]
   script:
     - syft "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" -o cyclonedx-json=sbom.cyclonedx.json
@@ -251,7 +255,9 @@ sign:sbom:
 
 sign:sbom-attest:
   stage: sign
-  image: gcr.io/projectsigstore/cosign:v2.4.1
+  image:
+    name: gcr.io/projectsigstore/cosign:v2.4.1
+    entrypoint: [""]
   needs: ["sign:sbom", "sign:cosign"]
   variables:
     COSIGN_EXPERIMENTAL: "1"
@@ -334,7 +340,9 @@ promote:manual-gate:
 
 promote:verify-signature:
   stage: promote
-  image: gcr.io/projectsigstore/cosign:v2.4.1
+  image:
+    name: gcr.io/projectsigstore/cosign:v2.4.1
+    entrypoint: [""]
   needs: ["promote:manual-gate"]
   variables:
     COSIGN_EXPERIMENTAL: "1"
