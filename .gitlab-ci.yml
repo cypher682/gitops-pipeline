@@ -326,7 +326,9 @@ push:update-gitops-values:
 # ---------------------------------------------------------------------------
 deploy:dev-sync:
   stage: deploy-dev
-  image: argoproj/argocd:v2.13.0
+  image:
+    name: quay.io/argoproj/argocd:v2.13.0
+    entrypoint: [""]
   needs: ["push:update-gitops-values"]
   script:
     - argocd login "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
@@ -380,7 +382,9 @@ promote:verify-signature:
 # ---------------------------------------------------------------------------
 deploy:staging-sync:
   stage: deploy-staging
-  image: argoproj/argocd:v2.13.0
+  image:
+    name: quay.io/argoproj/argocd:v2.13.0
+    entrypoint: [""]
   needs: ["promote:verify-signature"]
   script:
     - argocd login "${ARGOCD_SERVER}" --auth-token "${ARGOCD_AUTH_TOKEN}" --grpc-web
@@ -391,7 +395,9 @@ deploy:staging-sync:
 
 deploy:staging-canary:
   stage: deploy-staging
-  image: argoproj/argocd:v2.13.0
+  image:
+    name: quay.io/argoproj/argocd:v2.13.0
+    entrypoint: [""]
   needs: ["deploy:staging-sync"]
   script:
     # Watches the Rollout's own canary progression (10% -> analysis -> 50%
