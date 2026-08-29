@@ -9,3 +9,4 @@ trivy-report.json
 semgrep-report.json
 age-key.txt
 *.enc.yaml.bak
+argocd/cmp-sidecar/sops-linux-amd64
