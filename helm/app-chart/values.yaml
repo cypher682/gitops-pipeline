@@ -4,7 +4,7 @@
 image:
   repository: registry.gitlab.com/cypher682/gitops-pipeline
   # Updated automatically by the push:update-gitops-values CI job (Stage 7)
-  tag: "0ff1553f"
+  tag: "8226c9fb"
   pullPolicy: IfNotPresent
 
 replicaCount: 2
