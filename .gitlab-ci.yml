@@ -327,7 +327,7 @@ push:update-gitops-values:
 deploy:dev-sync:
   stage: deploy-dev
   image:
-    name: quay.io/argoproj/argocd:v2.13.0
+    name: quay.io/argoproj/argocd:v3.5.2
     entrypoint: [""]
   needs: ["push:update-gitops-values"]
   script:
@@ -383,7 +383,7 @@ promote:verify-signature:
 deploy:staging-sync:
   stage: deploy-staging
   image:
-    name: quay.io/argoproj/argocd:v2.13.0
+    name: quay.io/argoproj/argocd:v3.5.2
     entrypoint: [""]
   needs: ["promote:verify-signature"]
   script:
@@ -396,7 +396,7 @@ deploy:staging-sync:
 deploy:staging-canary:
   stage: deploy-staging
   image:
-    name: quay.io/argoproj/argocd:v2.13.0
+    name: quay.io/argoproj/argocd:v3.5.2
     entrypoint: [""]
   needs: ["deploy:staging-sync"]
   script:
