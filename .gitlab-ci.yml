@@ -54,7 +54,9 @@ lint:k8s-manifests:
     - helm template helm/app-chart --values helm/app-chart/values-staging.yaml > /tmp/rendered-staging.yaml
     # kubeval doesn't know the Rollout CRD schema — skip-kinds avoids false failures
     # on argoproj.io/v1alpha1 while still validating every core K8s resource.
-    - kubeval --skip-kinds Rollout,AnalysisTemplate /tmp/rendered-dev.yaml /tmp/rendered-staging.yaml
+    # --ignore-missing-schemas: GitLab runners often can't fetch schemas for newer K8s kinds (HPA v2, Ingress v1)
+    # WARNs would otherwise exit 1 — we still validate what has a schema.
+    - kubeval --ignore-missing-schemas --skip-kinds Rollout,AnalysisTemplate /tmp/rendered-dev.yaml /tmp/rendered-staging.yaml
 
 lint:terraform:
   stage: validate
