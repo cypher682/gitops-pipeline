@@ -34,7 +34,7 @@ spec:
       project: default
       source:
         # Replace with your actual GitLab (or GitHub mirror) repo URL.
-        repoURL: https://gitlab.com/CHANGE_ME/gitops-pipeline.git
+        repoURL: https://gitlab.com/cypher682/gitops-pipeline.git
         targetRevision: main
         path: helm/app-chart
         helm:

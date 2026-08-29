@@ -24,13 +24,13 @@ git remote add origin https://gitlab.com/<your-namespace>/gitops-pipeline.git
 git push -u origin main
 ```
 
-## 4. Replace CHANGE_ME placeholders
+## 4. Replace cypher682 placeholders
 
-Search the repo for `CHANGE_ME` and replace with your actual GitLab
+Search the repo for `cypher682` and replace with your actual GitLab
 namespace/repo path:
 
 ```bash
-grep -rl "CHANGE_ME" . | xargs sed -i "s/CHANGE_ME/<your-namespace>/g"
+grep -rl "cypher682" . | xargs sed -i "s/cypher682/<your-namespace>/g"
 ```
 
 Files affected: `argocd/applicationset.yaml`, `argocd/app-of-apps.yaml`,

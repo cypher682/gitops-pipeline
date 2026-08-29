@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: "registry.gitlab.com/CHANGE_ME/gitops-pipeline:latest"
+          image: "registry.gitlab.com/cypher682/gitops-pipeline:latest"
           ports:
             - name: http
               containerPort: 8000

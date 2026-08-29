@@ -62,5 +62,5 @@ argocd app sync gitops-pipeline-staging
 ## Repo URL placeholder
 
 `repoURL` in both `applicationset.yaml` and `app-of-apps.yaml` is set to
-`https://gitlab.com/CHANGE_ME/gitops-pipeline.git`. Replace `CHANGE_ME`
+`https://gitlab.com/cypher682/gitops-pipeline.git`. Replace `cypher682`
 with your actual GitLab namespace once the repo is pushed (Stage 9).

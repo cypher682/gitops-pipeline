@@ -1,19 +1,4 @@
-# SOPS configuration — age is used instead of PGP for simpler key management
-# (single keypair file, no keyring/web-of-trust setup).
-#
-# Generate your own keypair before first use:
-#   age-keygen -o age-key.txt
-# Never commit age-key.txt. The public key below goes in this file;
-# the private key lives only in your local keychain and in the
-# SOPS_AGE_KEY CI/CD variable (masked, protected).
 creation_rules:
-  - path_regex: secrets/.*\.(yaml|yml|json)$
-    # DEMO KEY — generated solely to produce a real, working encrypted
-    # example for this repo. Its private half was never saved anywhere
-    # persistent and is not recoverable. Generate your OWN keypair before
-    # using this repo for anything real:
-    #   age-keygen -o age-key.txt
-    # then replace the public key below and re-encrypt secrets/app-secrets.enc.yaml
-    # with: sops updatekeys secrets/app-secrets.enc.yaml
-    age: age12grd73m55hkylvnx7nm5vf4snn8usnp8kelwv89z7zwazng0s52qrjjr27
+  - path_regex: .*
+    age: age1h3z0hwp4rrwfhjllw2u57h29ulgkfkg7t8dg63hna69rukkxwvas7vdfl8
     encrypted_regex: "^(data|stringData)$"

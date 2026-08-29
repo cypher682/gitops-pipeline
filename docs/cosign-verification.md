@@ -19,7 +19,7 @@ cosign sign --yes "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 cosign verify \
   --certificate-identity-regexp ".*gitops-pipeline.*" \
   --certificate-oidc-issuer "https://gitlab.com" \
-  registry.gitlab.com/CHANGE_ME/gitops-pipeline:<sha>
+  registry.gitlab.com/cypher682/gitops-pipeline:<sha>
 ```
 
 Expected output includes the certificate subject (GitLab CI job identity),
@@ -33,7 +33,7 @@ cosign verify-attestation \
   --type cyclonedx \
   --certificate-identity-regexp ".*gitops-pipeline.*" \
   --certificate-oidc-issuer "https://gitlab.com" \
-  registry.gitlab.com/CHANGE_ME/gitops-pipeline:<sha>
+  registry.gitlab.com/cypher682/gitops-pipeline:<sha>
 ```
 
 ## Where this is enforced, not just demonstrated

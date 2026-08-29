@@ -24,7 +24,7 @@ SBOM + SOPS).
 **Not yet done (deliberately deferred — requires a live push + running
 cluster to produce, not something buildable offline):**
 - Actual `age-key.txt` generation + `SOPS_AGE_KEY` CI variable (yours to create — see `docs/sops-secrets.md`)
-- Replacing `CHANGE_ME` with your real GitLab namespace (see `docs/gitlab-setup.md`)
+- Replacing `cypher682` with your real GitLab namespace (see `docs/gitlab-setup.md`)
 - Evidence screenshots (`docs/evidence/CHECKLIST.md`)
 - Content deliverables (Dev.to / LinkedIn / X) — drafted after evidence is captured, per portfolio SDLC (build → evidence → content)
 
@@ -36,8 +36,8 @@ git init && git add . && git commit -m "feat: initial gitops-pipeline scaffold"
 git remote add origin https://gitlab.com/<your-namespace>/gitops-pipeline.git
 git push -u origin main
 
-# 2. Replace CHANGE_ME placeholders
-grep -rl "CHANGE_ME" . | xargs sed -i "s/CHANGE_ME/<your-namespace>/g"
+# 2. Replace cypher682 placeholders
+grep -rl "cypher682" . | xargs sed -i "s/cypher682/<your-namespace>/g"
 
 # 3. Generate your own SOPS/age key and set CI variables (docs/sops-secrets.md, docs/gitlab-setup.md)
 
