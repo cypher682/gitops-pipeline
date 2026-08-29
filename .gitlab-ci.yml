@@ -315,9 +315,11 @@ push:update-gitops-values:
       git checkout main
       sed -i "s/tag: .*/tag: \"${IMAGE_TAG}\"/" helm/app-chart/values-dev.yaml 2>/dev/null || true
       sed -i "s/tag: .*/tag: \"${IMAGE_TAG}\"/" helm/app-chart/values.yaml
-      git add helm/app-chart/values.yaml
+      git add helm/app-chart/values.yaml helm/app-chart/values-dev.yaml
       git commit -m "ci: bump image tag to ${IMAGE_TAG} [skip ci]" || echo "nothing to commit"
-      git push "https://gitlab-ci-token:${CI_JOB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" HEAD:main
+      # CI_JOB_TOKEN cannot push to a protected branch (403); use a project
+      # Access Token with write_repository scope from the GITLAB_PUSH_TOKEN variable.
+      git push "https://oauth2:${GITLAB_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" HEAD:main
 
 # ---------------------------------------------------------------------------
 # deploy-dev
