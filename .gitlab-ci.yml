@@ -229,19 +229,23 @@ scan:dependency-audit:
 sign:cosign:
   stage: sign
   image: alpine:3.20
+  id_tokens:
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
   needs: ["scan:trivy", "scan:semgrep"]
   variables:
     COSIGN_EXPERIMENTAL: "1"  # enables keyless (Sigstore/Fulcio/Rekor) signing
   before_script:
-    - apk add --no-cache curl
+    - apk add --no-cache curl docker-cli
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - curl -sL -o /usr/local/bin/cosign https://github.com/sigstore/cosign/releases/download/v2.4.1/cosign-linux-amd64
     - chmod +x /usr/local/bin/cosign
   script:
-    # Keyless: identity comes from the GitLab CI OIDC token, no key
-    # management required. Requires the project's CI/CD OIDC issuer to be
-    # trusted by Fulcio, which is the public default — no extra config needed
-    # for gitlab.com-hosted projects.
-    - cosign sign --yes "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
+    # Keyless: identity comes from the GitLab CI OIDC token (SIGSTORE_ID_TOKEN,
+    # aud=sigstore) — no key management required. --identity-token passes the
+    # GitLab-issued JWT to Fulcio; the signature is stored in the registry and
+    # recorded in the public Rekor transparency log.
+    - cosign sign --yes --identity-token "$(cat "$SIGSTORE_ID_TOKEN")" "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
 
 sign:sbom:
   stage: sign
@@ -260,15 +264,19 @@ sign:sbom:
 sign:sbom-attest:
   stage: sign
   image: alpine:3.20
+  id_tokens:
+    SIGSTORE_ID_TOKEN:
+      aud: sigstore
   needs: ["sign:sbom", "sign:cosign"]
   variables:
     COSIGN_EXPERIMENTAL: "1"
   before_script:
-    - apk add --no-cache curl
+    - apk add --no-cache curl docker-cli
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
     - curl -sL -o /usr/local/bin/cosign https://github.com/sigstore/cosign/releases/download/v2.4.1/cosign-linux-amd64
     - chmod +x /usr/local/bin/cosign
   script:
-    - cosign attest --yes
+    - cosign attest --yes --identity-token "$(cat "$SIGSTORE_ID_TOKEN")"
       --predicate sbom.cyclonedx.json
       --type cyclonedx
       "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
