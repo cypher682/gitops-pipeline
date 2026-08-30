@@ -55,7 +55,7 @@ git push github main
 
 | Variable | Type | Protected | Masked | Purpose |
 |---|---|---|---|---|
-| `ARGOCD_SERVER` | Variable | Yes | No | ArgoCD API endpoint (e.g. `argocd.yourdomain.com` or tunnelled minikube service) |
+| `ARGOCD_SERVER` | Variable | Yes | Yes | ArgoCD API endpoint as **bare `host:port` with NO scheme** (e.g. `junkman-bucket-factual.ngrok-free.dev:443`). The argocd CLI double-prefixes a scheme (`--server https://...` -> `https://https//...`), so the scheme must be omitted. |
 | `ARGOCD_AUTH_TOKEN` | Variable | Yes | Yes | `argocd account generate-token` output |
 | `SOPS_AGE_KEY` | Variable | Yes | Yes | Full contents of your `age-key.txt` — see `docs/sops-secrets.md` |
 | `DEV_APP_URL` | Variable | No | No | URL the `deploy:dev-smoke-test` job curls for `/health` |
