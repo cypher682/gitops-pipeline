@@ -93,7 +93,7 @@ gitops-pipeline/
 ├── secrets/app-secrets.enc.yaml  # SOPS (age)-encrypted secret
 ├── .sops.yaml                    # SOPS rules (encrypted_regex)
 ├── argocd/                       # self-managed GitOps config (app-of-apps)
-│   ├── application.yaml          #    root Application (auto-sync + prune)
+│   ├── app-of-apps.yaml          #    root Application (auto-sync + prune)
 │   ├── applicationset.yaml       #    generates dev + staging Applications
 │   ├── sops-plugin.yaml          #    CMP: helm render + sops decrypt
 │   ├── sops-plugin-patch.yaml    #    repo-server sidecar injection
@@ -140,7 +140,7 @@ kubectl apply --server-side -f <rollouts-install.yaml>
 kubectl apply -n observability -f observability/prometheus.yaml
 kubectl apply -n argocd -f argocd/sops-plugin.yaml
 kubectl apply -n argocd -f argocd/applicationset.yaml
-kubectl apply -n argocd -f argocd/application.yaml
+kubectl apply -n argocd -f argocd/app-of-apps.yaml
 
 # 5. Push — CI drives dev, approve the gate for staging, watch the canary:
 kubectl argo rollouts get rollout app-chart-staging -n gitops-staging --watch
